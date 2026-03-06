@@ -451,7 +451,11 @@
   <img id="lightbox-img" src="" alt="">
 </div>
 <div class="toast" id="toast"></div>
-
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/Week-ab/sw.js');
+  }
+</script>
 <script>
 const AR_DAYS   = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 const AR_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
