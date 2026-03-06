@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>جدول الأسبوع</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#f7f4ef; --white:#ffffff; --ink:#1c1917; --muted:#78716c;
+    --border:#e5e0d8; --a-color:#1d4ed8; --a-light:#dbeafe; --a-mid:#3b82f6;
+    --b-color:#9333ea; --b-light:#f3e8ff; --b-mid:#a855f7;
+    --input-bg:#faf9f7; --shadow:0 4px 24px rgba(28,25,23,0.08);
+    --shadow-lg:0 12px 48px rgba(28,25,23,0.12);
+    --green:#16a34a; --green-light:#dcfce7;
+    --red:#dc2626; --red-light:#fee2e2;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--ink); font-family:'Tajawal',sans-serif; min-height:100vh; }
+
+  /* ═══ SETUP ═══════════════════════════════════════════════ */
+  #setup {
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+    background: radial-gradient(ellipse at 10% 20%,rgba(29,78,216,.06) 0%,transparent 50%),
+                radial-gradient(ellipse at 90% 80%,rgba(147,51,234,.05) 0%,transparent 50%), var(--bg);
+  }
+  .setup-wrap { width:100%; max-width:500px; animation:riseUp .65s cubic-bezier(.22,.68,0,1.2) both; }
+  @keyframes riseUp { from{opacity:0;transform:translateY(32px) scale(.97)} to{opacity:1;transform:none} }
+  .setup-header { text-align:center; margin-bottom:36px; }
+  .setup-header h1 { font-family:'Playfair Display',serif; font-size:clamp(2rem,6vw,2.8rem); font-weight:900; letter-spacing:-.02em; }
+  .setup-header h1 span { display:inline-block; padding:2px 10px; margin:0 2px; border-radius:4px; }
+  .week-a-badge { background:var(--a-light); color:var(--a-color); }
+  .week-b-badge { background:var(--b-light); color:var(--b-color); }
+  .setup-header p { margin-top:10px; color:var(--muted); font-size:.88rem; font-weight:300; }
+  .setup-card { background:var(--white); border:1px solid var(--border); padding:36px 32px; box-shadow:var(--shadow-lg); }
+
+  .photo-upload-wrap { display:flex; flex-direction:column; align-items:center; margin-bottom:28px; }
+  .photo-ring {
+    width:100px; height:100px; border-radius:50%; border:3px dashed var(--border);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    overflow:hidden; position:relative; transition:border-color .2s; background:var(--input-bg);
+  }
+  .photo-ring:hover { border-color:var(--a-mid); }
+  .photo-ring:hover .photo-overlay { opacity:1; }
+  .photo-ring img { width:100%; height:100%; object-fit:cover; display:none; }
+  .photo-placeholder { font-size:2.2rem; color:var(--border); }
+  .photo-overlay {
+    position:absolute; inset:0; background:rgba(29,78,216,.35); display:flex;
+    align-items:center; justify-content:center; color:#fff; font-size:1.4rem;
+    opacity:0; transition:opacity .2s; border-radius:50%;
+  }
+  #photo-input { display:none; }
+  .photo-hint { margin-top:8px; font-size:.72rem; color:var(--muted); letter-spacing:.05em; }
+
+  .field { margin-bottom:18px; }
+  .field label { display:block; font-size:.78rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:7px; }
+  .field input,.field select {
+    width:100%; background:var(--input-bg); border:1px solid var(--border); color:var(--ink);
+    font-family:'Tajawal',sans-serif; font-size:.92rem; padding:11px 14px; outline:none;
+    transition:border-color .18s,box-shadow .18s; -webkit-appearance:none;
+  }
+  .field input:focus,.field select:focus { border-color:var(--a-mid); box-shadow:0 0 0 3px rgba(59,130,246,.1); }
+  .ref-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px; }
+  .ref-row .field { margin-bottom:0; }
+  .save-btn {
+    width:100%; padding:14px; background:var(--ink); color:#fff; border:none;
+    font-family:'Tajawal',sans-serif; font-size:1rem; font-weight:700; cursor:pointer;
+    letter-spacing:.04em; transition:all .2s; margin-top:8px; box-shadow:0 4px 16px rgba(28,25,23,.2);
+  }
+  .save-btn:hover { background:var(--a-color); transform:translateY(-1px); }
+
+  /* ═══ APP ══════════════════════════════════════════════════ */
+  #app { display:none; min-height:100vh; padding-bottom:72px; }
+
+  /* ─ Profile ─ */
+  .profile-strip {
+    display:flex; align-items:center; gap:14px; background:var(--white);
+    border:1px solid var(--border); padding:14px 18px; width:100%; max-width:520px;
+    margin:0 auto 18px; box-shadow:var(--shadow);
+  }
+  .profile-photo { width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid var(--border); flex-shrink:0; }
+  .profile-photo-placeholder { width:50px; height:50px; border-radius:50%; background:var(--border); display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0; }
+  .profile-info { flex:1; text-align:right; }
+  .profile-name { font-size:.92rem; font-weight:700; }
+  .profile-role { font-size:.74rem; color:var(--muted); margin-top:2px; }
+  .edit-profile-btn { background:none; border:1px solid var(--border); color:var(--muted); font-family:'Tajawal',sans-serif; font-size:.7rem; padding:5px 10px; cursor:pointer; transition:all .15s; white-space:nowrap; }
+  .edit-profile-btn:hover { color:var(--ink); border-color:var(--ink); }
+
+  /* ─ Week card ─ */
+  .week-card {
+    padding:28px 24px; border:1px solid var(--border); background:var(--white);
+    box-shadow:var(--shadow-lg); position:relative; overflow:hidden; text-align:center;
+    width:100%; max-width:520px; margin:0 auto;
+  }
+  .week-card::before { content:''; position:absolute; top:0; left:0; right:0; height:5px; }
+  .week-card.is-a::before { background:linear-gradient(90deg,var(--a-color),var(--a-mid)); }
+  .week-card.is-b::before { background:linear-gradient(90deg,var(--b-color),var(--b-mid)); }
+  .week-label-small { font-size:.66rem; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+  .week-letter { font-family:'Playfair Display',serif; font-size:5.5rem; font-weight:900; line-height:1; letter-spacing:-.05em; margin-bottom:4px; }
+  .is-a .week-letter { color:var(--a-color); }
+  .is-b .week-letter { color:var(--b-color); }
+  .week-name { font-size:1.2rem; font-weight:700; margin-bottom:4px; }
+  .week-dates { font-size:.78rem; color:var(--muted); margin-bottom:14px; }
+  .week-num-badge { display:inline-block; font-size:.68rem; font-weight:700; letter-spacing:.1em; padding:4px 12px; border-radius:20px; text-transform:uppercase; }
+  .is-a .week-num-badge { background:var(--a-light); color:var(--a-color); }
+  .is-b .week-num-badge { background:var(--b-light); color:var(--b-color); }
+  .next-preview { margin-top:12px; padding:11px 16px; background:var(--bg); border:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; font-size:.78rem; }
+  .next-preview .next-label { color:var(--muted); }
+  .next-preview .next-val { font-weight:700; }
+  .next-preview .next-val.a { color:var(--a-color); }
+  .next-preview .next-val.b { color:var(--b-color); }
+
+  /* ─ Countdown ─ */
+  .countdown-strip {
+    width:100%; max-width:520px; background:var(--white); border:1px solid var(--border);
+    padding:14px 16px; margin:12px auto 0; display:grid; grid-template-columns:repeat(4,1fr); box-shadow:var(--shadow);
+  }
+  .cd-unit { text-align:center; padding:4px; border-left:1px solid var(--border); }
+  .cd-unit:last-child { border-left:none; }
+  .cd-num { font-family:'Playfair Display',serif; font-size:1.35rem; font-weight:700; line-height:1; }
+  .cd-lbl { font-size:.58rem; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-top:2px; }
+
+  /* ─ Days ─ */
+  .days-strip { width:100%; max-width:520px; background:var(--white); border:1px solid var(--border); padding:16px; margin:12px auto 0; box-shadow:var(--shadow); }
+  .days-title { font-size:.68rem; font-weight:700; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+  .days-row { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+  .day-cell { text-align:center; padding:7px 2px; border:1px solid var(--border); font-size:.66rem; }
+  .day-cell .day-name { color:var(--muted); font-size:.58rem; margin-bottom:3px; }
+  .day-cell .day-num { font-weight:700; font-size:.8rem; }
+  .is-a .day-cell.today { border:2px solid var(--a-color); background:var(--a-light); }
+  .is-b .day-cell.today { border:2px solid var(--b-color); background:var(--b-light); }
+
+  /* ═══ PAGES ════════════════════════════════════════════════ */
+  .page { display:none; padding:20px 16px 0; max-width:680px; margin:0 auto; }
+  .page.active { display:block; animation:fadeDown .3s ease both; }
+  .page-home { display:block; padding:20px 16px 0; }
+  @keyframes fadeDown { from{opacity:0;transform:translateY(-12px)} to{opacity:1;transform:none} }
+
+  .page-title { font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:700; margin-bottom:18px; display:flex; align-items:center; gap:8px; }
+
+  /* ═══ BOTTOM NAV ═══════════════════════════════════════════ */
+  .bottom-nav {
+    position:fixed; bottom:0; left:0; right:0; background:var(--white);
+    border-top:1px solid var(--border); display:flex; padding:8px 0 10px; z-index:50;
+    box-shadow:0 -4px 20px rgba(28,25,23,.06);
+  }
+  .nav-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer; padding:4px; transition:all .15s; }
+  .nav-icon { font-size:1.2rem; }
+  .nav-lbl { font-size:.58rem; color:var(--muted); letter-spacing:.04em; }
+  .nav-item.active .nav-lbl { color:var(--a-color); font-weight:700; }
+
+  /* ═══ SCHEDULE PAGE ════════════════════════════════════════ */
+  .week-tabs { display:flex; gap:0; margin-bottom:16px; border:1px solid var(--border); overflow:hidden; max-width:520px; margin-left:auto; margin-right:auto; }
+  .week-tab { flex:1; padding:12px; background:none; border:none; font-family:'Tajawal',sans-serif; font-size:.92rem; font-weight:700; cursor:pointer; transition:all .2s; color:var(--muted); }
+  .week-tab.active-a { background:var(--a-light); color:var(--a-color); }
+  .week-tab.active-b { background:var(--b-light); color:var(--b-color); }
+  .week-tab:not(.active-a):not(.active-b):hover { background:var(--bg); color:var(--ink); }
+
+  .sched-wrapper { max-width:520px; margin:0 auto; }
+
+  .current-week-tag {
+    display:inline-flex; align-items:center; gap:5px; font-size:.66rem; font-weight:700;
+    letter-spacing:.08em; padding:4px 10px; border-radius:20px; text-transform:uppercase; margin-bottom:12px;
+  }
+  .current-week-tag.a { background:var(--a-light); color:var(--a-color); }
+  .current-week-tag.b { background:var(--b-light); color:var(--b-color); }
+  .current-week-tag .dot { width:6px; height:6px; border-radius:50%; background:currentColor; animation:blink 1.4s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  .sched-zone {
+    width:100%; min-height:200px; border:2px dashed var(--border); background:var(--white);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    cursor:pointer; transition:all .2s; position:relative; overflow:hidden;
+  }
+  .sched-zone:hover { border-color:var(--a-mid); background:#f0f7ff; }
+  .sched-zone.has-img { cursor:default; border-style:solid; border-color:var(--border); }
+  .sched-zone img { width:100%; height:auto; display:none; object-fit:contain; max-height:520px; }
+  .upload-hint { display:flex; flex-direction:column; align-items:center; gap:8px; pointer-events:none; padding:30px; }
+  .upload-icon { font-size:2.4rem; }
+  .upload-text { font-size:.84rem; color:var(--muted); font-weight:500; }
+  .upload-sub { font-size:.7rem; color:var(--muted); opacity:.7; }
+  .sched-zone.has-img .upload-hint { display:none; }
+
+  .sched-actions { display:flex; gap:8px; margin-top:10px; }
+  .sched-btn {
+    flex:1; padding:10px; border:1px solid var(--border); background:var(--white);
+    font-family:'Tajawal',sans-serif; font-size:.8rem; cursor:pointer; transition:all .18s;
+    color:var(--ink); font-weight:500; display:flex; align-items:center; justify-content:center; gap:5px;
+  }
+  .sched-btn:hover { border-color:var(--ink); }
+  .sched-btn.danger:hover { border-color:var(--red); color:var(--red); background:var(--red-light); }
+
+  /* ═══ NOTES PAGE ═══════════════════════════════════════════ */
+  .notes-toolbar { display:flex; gap:10px; margin-bottom:14px; align-items:stretch; max-width:520px; margin-left:auto; margin-right:auto; }
+  .notes-filter { display:flex; gap:0; border:1px solid var(--border); overflow:hidden; flex:1; }
+  .filter-btn { flex:1; padding:8px 4px; background:none; border:none; border-left:1px solid var(--border); font-family:'Tajawal',sans-serif; font-size:.75rem; cursor:pointer; color:var(--muted); transition:all .15s; }
+  .filter-btn:first-child { border-left:none; }
+  .filter-btn.on { background:var(--ink); color:#fff; }
+
+  .add-note-btn {
+    padding:8px 16px; background:var(--ink); color:#fff; border:none;
+    font-family:'Tajawal',sans-serif; font-size:.82rem; font-weight:700;
+    cursor:pointer; transition:all .2s; white-space:nowrap;
+  }
+  .add-note-btn:hover { background:var(--a-color); }
+
+  .note-composer {
+    background:var(--white); border:1px solid var(--border); padding:16px;
+    margin-bottom:14px; box-shadow:var(--shadow); display:none;
+    max-width:520px; margin-left:auto; margin-right:auto;
+  }
+  .note-composer.open { display:block; animation:fadeDown .25s ease both; }
+  .note-composer-header { display:flex; gap:10px; margin-bottom:10px; align-items:center; }
+  .note-tag-select {
+    background:var(--input-bg); border:1px solid var(--border); color:var(--ink);
+    font-family:'Tajawal',sans-serif; font-size:.82rem; padding:8px 10px;
+    outline:none; -webkit-appearance:none; cursor:pointer; flex:1;
+  }
+  .note-tag-select:focus { border-color:var(--a-mid); }
+  .note-textarea {
+    width:100%; min-height:88px; background:var(--input-bg); border:1px solid var(--border);
+    color:var(--ink); font-family:'Tajawal',sans-serif; font-size:.88rem;
+    padding:10px 12px; outline:none; resize:vertical; line-height:1.65; transition:border-color .18s;
+  }
+  .note-textarea:focus { border-color:var(--a-mid); box-shadow:0 0 0 3px rgba(59,130,246,.08); }
+  .note-composer-actions { display:flex; gap:8px; margin-top:10px; justify-content:flex-end; }
+  .note-save-btn { padding:8px 20px; background:var(--ink); color:#fff; border:none; font-family:'Tajawal',sans-serif; font-size:.84rem; font-weight:700; cursor:pointer; transition:background .2s; }
+  .note-save-btn:hover { background:var(--a-color); }
+  .note-cancel-btn { padding:8px 14px; background:none; border:1px solid var(--border); color:var(--muted); font-family:'Tajawal',sans-serif; font-size:.84rem; cursor:pointer; transition:all .15s; }
+  .note-cancel-btn:hover { border-color:var(--ink); color:var(--ink); }
+
+  .notes-list { display:flex; flex-direction:column; gap:10px; padding-bottom:20px; max-width:520px; margin:0 auto; }
+  .note-card {
+    background:var(--white); border:1px solid var(--border); padding:14px 16px;
+    box-shadow:var(--shadow); position:relative; border-right:4px solid transparent;
+    animation:fadeDown .25s ease both;
+  }
+  .note-card.tag-A     { border-right-color:var(--a-color); }
+  .note-card.tag-B     { border-right-color:var(--b-color); }
+  .note-card.tag-both  { border-right-color:var(--green); }
+  .note-card.tag-general { border-right-color:var(--muted); }
+
+  .note-card-header { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .note-tag-pill { font-size:.6rem; font-weight:700; letter-spacing:.07em; padding:2px 8px; border-radius:10px; text-transform:uppercase; }
+  .pill-A { background:var(--a-light); color:var(--a-color); }
+  .pill-B { background:var(--b-light); color:var(--b-color); }
+  .pill-both { background:var(--green-light); color:var(--green); }
+  .pill-general { background:var(--bg); color:var(--muted); border:1px solid var(--border); }
+  .note-date { font-size:.63rem; color:var(--muted); margin-right:auto; }
+  .note-text { font-size:.86rem; line-height:1.7; white-space:pre-wrap; }
+  .note-footer { display:flex; gap:8px; margin-top:10px; justify-content:flex-end; }
+  .note-action-btn { background:none; border:1px solid var(--border); color:var(--muted); font-family:'Tajawal',sans-serif; font-size:.68rem; padding:4px 10px; cursor:pointer; transition:all .15s; }
+  .note-action-btn:hover { color:var(--ink); border-color:var(--ink); }
+  .note-action-btn.del:hover { color:var(--red); border-color:var(--red); background:var(--red-light); }
+
+  .empty-notes { text-align:center; padding:44px 0; color:var(--muted); max-width:520px; margin:0 auto; }
+  .empty-notes .empty-icon { font-size:2.4rem; margin-bottom:12px; }
+  .empty-notes p { font-size:.86rem; }
+
+  /* ═══ LIGHTBOX ═════════════════════════════════════════════ */
+  .lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,.88); z-index:200; align-items:center; justify-content:center; padding:16px; }
+  .lightbox.open { display:flex; animation:fadeDown .25s ease; }
+  .lightbox img { max-width:100%; max-height:90vh; object-fit:contain; }
+  .lightbox-close { position:absolute; top:14px; left:14px; background:rgba(255,255,255,.15); border:none; color:#fff; font-size:1.5rem; width:42px; height:42px; cursor:pointer; display:flex; align-items:center; justify-content:center; border-radius:50%; transition:background .2s; }
+  .lightbox-close:hover { background:rgba(255,255,255,.3); }
+
+  /* Toast */
+  .toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(14px); background:var(--ink); color:#fff; padding:9px 20px; font-size:.8rem; opacity:0; transition:all .28s; pointer-events:none; z-index:300; box-shadow:var(--shadow-lg); white-space:nowrap; }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- ═══ SETUP ════════════════════════════════════════════════ -->
+<div id="setup">
+  <div class="setup-wrap">
+    <div class="setup-header">
+      <h1>أسبوع <span class="week-a-badge">أ</span> أم <span class="week-b-badge">ب</span>؟</h1>
+      <p>أخبرنا عنك لنخصّص التطبيق لك</p>
+    </div>
+    <div class="setup-card">
+      <div class="photo-upload-wrap">
+        <div class="photo-ring" onclick="document.getElementById('photo-input').click()">
+          <div class="photo-placeholder" id="photo-placeholder">👤</div>
+          <img id="photo-preview" alt="">
+          <div class="photo-overlay">📷</div>
+        </div>
+        <input type="file" id="photo-input" accept="image/*" onchange="handlePhoto(this)">
+        <div class="photo-hint">انقر لرفع صورتك</div>
+      </div>
+      <div class="field"><label>الاسم</label><input type="text" id="f-name" placeholder="ما اسمك؟" maxlength="40"></div>
+      <div class="field"><label>الدور / المؤسسة</label><input type="text" id="f-role" placeholder="مثال: طالب - مدرسة الأمل" maxlength="60"></div>
+      <div class="ref-row">
+        <div class="field"><label>تاريخ مرجعي</label><input type="date" id="f-ref-date"></div>
+        <div class="field"><label>هذا التاريخ هو</label>
+          <select id="f-ref-week"><option value="A">أسبوع أ</option><option value="B">أسبوع ب</option></select>
+        </div>
+      </div>
+      <button class="save-btn" onclick="saveProfile()">ابدأ ←</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ APP ══════════════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- ── Home ─────────────────────────────────────────────── -->
+  <div class="page active" id="page-home" style="padding:20px 16px 0">
+    <!-- Profile strip -->
+    <div class="profile-strip">
+      <div class="profile-photo-placeholder" id="app-photo-placeholder">👤</div>
+      <img class="profile-photo" id="app-photo" alt="" style="display:none">
+      <div class="profile-info">
+        <div class="profile-name" id="app-name">—</div>
+        <div class="profile-role" id="app-role">—</div>
+      </div>
+      <button class="edit-profile-btn" onclick="editProfile()">تعديل</button>
+    </div>
+
+    <!-- Week card -->
+    <div class="week-card" id="week-card">
+      <div class="week-label-small">هذا الأسبوع</div>
+      <div class="week-letter" id="wk-letter">أ</div>
+      <div class="week-name" id="wk-name">أسبوع أ</div>
+      <div class="week-dates" id="wk-dates"></div>
+      <div class="week-num-badge" id="wk-badge">الأسبوع الأول</div>
+      <div class="next-preview">
+        <span class="next-label">الأسبوع القادم</span>
+        <span class="next-val" id="next-week-val">ب</span>
+      </div>
+    </div>
+
+    <!-- Countdown -->
+    <div class="countdown-strip">
+      <div class="cd-unit"><div class="cd-num" id="cd-days">00</div><div class="cd-lbl">أيام</div></div>
+      <div class="cd-unit"><div class="cd-num" id="cd-hrs">00</div><div class="cd-lbl">ساعات</div></div>
+      <div class="cd-unit"><div class="cd-num" id="cd-min">00</div><div class="cd-lbl">دقائق</div></div>
+      <div class="cd-unit"><div class="cd-num" id="cd-sec">00</div><div class="cd-lbl">ثوانٍ</div></div>
+    </div>
+
+    <!-- Days -->
+    <div class="days-strip" id="days-strip">
+      <div class="days-title">أيام هذا الأسبوع</div>
+      <div class="days-row" id="days-row"></div>
+    </div>
+  </div>
+
+  <!-- ── Schedule ──────────────────────────────────────────── -->
+  <div class="page" id="page-schedule">
+    <div class="page-title"><span>🗓</span> الجدول الدراسي</div>
+
+    <div class="week-tabs">
+      <button class="week-tab active-a" id="tab-a" onclick="switchSchedTab('A')">📘 أسبوع أ</button>
+      <button class="week-tab"          id="tab-b" onclick="switchSchedTab('B')">📙 أسبوع ب</button>
+    </div>
+
+    <!-- Panel A -->
+    <div id="sched-panel-A" class="sched-wrapper">
+      <div id="current-tag-A" style="margin-bottom:4px"></div>
+      <div class="sched-zone" id="zone-A">
+        <img id="sched-img-A" alt="جدول أسبوع أ">
+        <div class="upload-hint">
+          <div class="upload-icon">📸</div>
+          <div class="upload-text">اضغط لرفع صورة جدول أسبوع أ</div>
+          <div class="upload-sub">JPG · PNG · يُحفظ تلقائياً</div>
+        </div>
+      </div>
+      <div class="sched-actions">
+        <button class="sched-btn" onclick="viewSchedFull('A')">🔍 عرض كامل</button>
+        <button class="sched-btn" onclick="triggerSchedUpload('A')">📷 تغيير</button>
+        <button class="sched-btn danger" onclick="clearSchedImg('A')">🗑 حذف</button>
+      </div>
+      <input type="file" id="sched-input-A" accept="image/*" style="display:none" onchange="handleSchedPhoto(this,'A')">
+    </div>
+
+    <!-- Panel B -->
+    <div id="sched-panel-B" class="sched-wrapper" style="display:none">
+      <div id="current-tag-B" style="margin-bottom:4px"></div>
+      <div class="sched-zone" id="zone-B">
+        <img id="sched-img-B" alt="جدول أسبوع ب">
+        <div class="upload-hint">
+          <div class="upload-icon">📸</div>
+          <div class="upload-text">اضغط لرفع صورة جدول أسبوع ب</div>
+          <div class="upload-sub">JPG · PNG · يُحفظ تلقائياً</div>
+        </div>
+      </div>
+      <div class="sched-actions">
+        <button class="sched-btn" onclick="viewSchedFull('B')">🔍 عرض كامل</button>
+        <button class="sched-btn" onclick="triggerSchedUpload('B')">📷 تغيير</button>
+        <button class="sched-btn danger" onclick="clearSchedImg('B')">🗑 حذف</button>
+      </div>
+      <input type="file" id="sched-input-B" accept="image/*" style="display:none" onchange="handleSchedPhoto(this,'B')">
+    </div>
+  </div>
+
+  <!-- ── Notes ─────────────────────────────────────────────── -->
+  <div class="page" id="page-notes">
+    <div class="page-title"><span>📝</span> الملاحظات</div>
+
+    <div class="notes-toolbar">
+      <div class="notes-filter">
+        <button class="filter-btn on"  data-f="all"     onclick="setNoteFilter(this)">الكل</button>
+        <button class="filter-btn"     data-f="A"       onclick="setNoteFilter(this)">أ</button>
+        <button class="filter-btn"     data-f="B"       onclick="setNoteFilter(this)">ب</button>
+        <button class="filter-btn"     data-f="both"    onclick="setNoteFilter(this)">الاثنان</button>
+        <button class="filter-btn"     data-f="general" onclick="setNoteFilter(this)">عامة</button>
+      </div>
+      <button class="add-note-btn" onclick="openComposer()">+ إضافة</button>
+    </div>
+
+    <div class="note-composer" id="note-composer">
+      <div class="note-composer-header">
+        <select class="note-tag-select" id="note-tag-sel">
+          <option value="A">📘 أسبوع أ</option>
+          <option value="B">📙 أسبوع ب</option>
+          <option value="both">📗 الأسبوعان</option>
+          <option value="general">📌 ملاحظة عامة</option>
+        </select>
+      </div>
+      <textarea class="note-textarea" id="note-text-input" placeholder="اكتب ملاحظتك هنا…"></textarea>
+      <div class="note-composer-actions">
+        <button class="note-cancel-btn" onclick="closeComposer()">إلغاء</button>
+        <button class="note-save-btn"   onclick="saveNote()">حفظ ←</button>
+      </div>
+    </div>
+
+    <div class="notes-list" id="notes-list"></div>
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <div class="nav-item active" id="nav-home"     onclick="showPage('home')">
+      <span class="nav-icon">📅</span><span class="nav-lbl">الرئيسية</span>
+    </div>
+    <div class="nav-item" id="nav-schedule" onclick="showPage('schedule')">
+      <span class="nav-icon">🗓</span><span class="nav-lbl">الجدول</span>
+    </div>
+    <div class="nav-item" id="nav-notes"    onclick="showPage('notes')">
+      <span class="nav-icon">📝</span><span class="nav-lbl">الملاحظات</span>
+    </div>
+    <div class="nav-item" id="nav-profile"  onclick="editProfile()">
+      <span class="nav-icon">👤</span><span class="nav-lbl">الملف</span>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" alt="">
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const AR_DAYS   = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+const AR_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+
+let profile = {}, photoData = null, notes = [], schedImgs = {A:null,B:null};
+let noteFilter = 'all', editingNoteId = null, activeSchedTab = 'A';
+
+// ─── Init ──────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('f-ref-date').value = new Date().toISOString().split('T')[0];
+  try { profile   = JSON.parse(localStorage.getItem('ab-profile') || '{}'); photoData = profile.photo || null; } catch(e){}
+  try { notes     = JSON.parse(localStorage.getItem('ab-notes')   || '[]'); } catch(e){}
+  try { schedImgs = JSON.parse(localStorage.getItem('ab-sched')   || '{"A":null,"B":null}'); } catch(e){}
+  if (profile.name) showApp();
+});
+
+// ─── Setup ─────────────────────────────────────────────────
+function handlePhoto(inp) {
+  const file = inp.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    photoData = e.target.result;
+    const img = document.getElementById('photo-preview');
+    img.src = photoData; img.style.display = 'block';
+    document.getElementById('photo-placeholder').style.display = 'none';
+  };
+  r.readAsDataURL(file);
+}
+
+function saveProfile() {
+  const name = document.getElementById('f-name').value.trim();
+  const role = document.getElementById('f-role').value.trim();
+  const refDate = document.getElementById('f-ref-date').value;
+  const refWeek = document.getElementById('f-ref-week').value;
+  if (!name)    { showToast('⚠ الرجاء إدخال اسمك'); return; }
+  if (!refDate) { showToast('⚠ الرجاء اختيار تاريخ مرجعي'); return; }
+  profile = { name, role, refDate, refWeek, photo: photoData };
+  localStorage.setItem('ab-profile', JSON.stringify(profile));
+  showApp();
+}
+
+function editProfile() {
+  document.getElementById('app').style.display   = 'none';
+  document.getElementById('setup').style.display = 'flex';
+  document.getElementById('f-name').value     = profile.name    || '';
+  document.getElementById('f-role').value     = profile.role    || '';
+  document.getElementById('f-ref-date').value = profile.refDate || '';
+  document.getElementById('f-ref-week').value = profile.refWeek || 'A';
+  if (profile.photo) {
+    document.getElementById('photo-preview').src = profile.photo;
+    document.getElementById('photo-preview').style.display = 'block';
+    document.getElementById('photo-placeholder').style.display = 'none';
+  }
+}
+
+// ─── Show App ──────────────────────────────────────────────
+function showApp() {
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('app').style.display   = 'block';
+  document.getElementById('app-name').textContent = profile.name || '—';
+  document.getElementById('app-role').textContent = profile.role || '';
+  if (profile.photo) {
+    document.getElementById('app-photo').src = profile.photo;
+    document.getElementById('app-photo').style.display = 'block';
+    document.getElementById('app-photo-placeholder').style.display = 'none';
+  }
+  updateWeekDisplay(); buildDaysRow(); updateCountdown();
+  setInterval(updateCountdown, 1000);
+  loadSchedImages(); renderNotes();
+}
+
+// ─── Navigation ────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-'  + name).classList.add('active');
+  if (name === 'schedule') refreshSchedTags();
+}
+
+// ─── Week logic ────────────────────────────────────────────
+function getMondayOf(date) {
+  const d = new Date(date), day = d.getDay();
+  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+  d.setHours(0,0,0,0); return d;
+}
+function getWeekType(d) {
+  const refMon = getMondayOf(new Date(profile.refDate));
+  const tgtMon = getMondayOf(new Date(d));
+  const diff   = Math.round((tgtMon - refMon) / (7*24*60*60*1000));
+  return diff % 2 === 0 ? profile.refWeek : (profile.refWeek === 'A' ? 'B' : 'A');
+}
+function fmt(d) { return `${d.getDate()} ${AR_MONTHS[d.getMonth()]} ${d.getFullYear()}`; }
+function ordinal(n) { return (['الأول','الثاني','الثالث','الرابع','الخامس','السادس','السابع','الثامن','التاسع','العاشر'])[n-1] || '#'+n; }
+
+function updateWeekDisplay() {
+  const today  = new Date(), wt = getWeekType(today), nt = wt === 'A' ? 'B' : 'A';
+  const mon    = getMondayOf(today), sun = new Date(mon); sun.setDate(mon.getDate()+6);
+  const refMon = getMondayOf(new Date(profile.refDate));
+  const wnum   = Math.abs(Math.round((getMondayOf(today)-refMon)/(7*24*60*60*1000)))+1;
+  const card   = document.getElementById('week-card');
+  card.className = 'week-card ' + (wt === 'A' ? 'is-a' : 'is-b');
+  document.getElementById('wk-letter').textContent = wt === 'A' ? 'أ' : 'ب';
+  document.getElementById('wk-name').textContent   = wt === 'A' ? 'أسبوع أ' : 'أسبوع ب';
+  document.getElementById('wk-dates').textContent  = `${fmt(mon)} — ${fmt(sun)}`;
+  document.getElementById('wk-badge').textContent  = `الأسبوع ${ordinal(wnum)}`;
+  const nx = document.getElementById('next-week-val');
+  nx.textContent = nt === 'A' ? 'أ — أسبوع أ' : 'ب — أسبوع ب';
+  nx.className = 'next-val ' + nt.toLowerCase();
+}
+
+function buildDaysRow() {
+  const today  = new Date(); today.setHours(0,0,0,0);
+  const mon    = getMondayOf(new Date()), wt = getWeekType(today);
+  const row    = document.getElementById('days-row'); row.innerHTML = '';
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(mon); d.setDate(mon.getDate()+i);
+    const cell = document.createElement('div');
+    cell.className = 'day-cell' + (d.getTime()===today.getTime() ? ' today' : '');
+    cell.innerHTML = `<div class="day-name">${AR_DAYS[d.getDay()].slice(0,3)}</div><div class="day-num">${d.getDate()}</div>`;
+    row.appendChild(cell);
+  }
+  document.getElementById('days-strip').className = 'days-strip ' + (wt==='A'?'is-a':'is-b');
+}
+
+function updateCountdown() {
+  const now = new Date(), mon = getMondayOf(new Date()), nxt = new Date(mon); nxt.setDate(mon.getDate()+7);
+  const d = nxt - now;
+  document.getElementById('cd-days').textContent = String(Math.floor(d/(1e3*60*60*24))).padStart(2,'0');
+  document.getElementById('cd-hrs').textContent  = String(Math.floor((d%(1e3*60*60*24))/(1e3*60*60))).padStart(2,'0');
+  document.getElementById('cd-min').textContent  = String(Math.floor((d%(1e3*60*60))/(1e3*60))).padStart(2,'0');
+  document.getElementById('cd-sec').textContent  = String(Math.floor((d%(1e3*60))/1e3)).padStart(2,'0');
+}
+
+// ─── Schedule Images ───────────────────────────────────────
+function loadSchedImages() {
+  ['A','B'].forEach(w => {
+    const img = document.getElementById('sched-img-'+w), zone = document.getElementById('zone-'+w);
+    if (schedImgs[w]) { img.src = schedImgs[w]; img.style.display='block'; zone.classList.add('has-img'); }
+    else { zone.onclick = () => triggerSchedUpload(w); }
+  });
+  refreshSchedTags();
+}
+
+function triggerSchedUpload(w) { document.getElementById('sched-input-'+w).click(); }
+
+function handleSchedPhoto(inp, w) {
+  const file = inp.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    schedImgs[w] = e.target.result;
+    localStorage.setItem('ab-sched', JSON.stringify(schedImgs));
+    const img = document.getElementById('sched-img-'+w), zone = document.getElementById('zone-'+w);
+    img.src = schedImgs[w]; img.style.display='block'; zone.classList.add('has-img');
+    zone.onclick = null;
+    refreshSchedTags();
+    showToast('✓ تم حفظ جدول أسبوع ' + (w==='A'?'أ':'ب'));
+  };
+  r.readAsDataURL(file); inp.value='';
+}
+
+function clearSchedImg(w) {
+  if (!schedImgs[w]) { showToast('لا توجد صورة'); return; }
+  schedImgs[w] = null;
+  localStorage.setItem('ab-sched', JSON.stringify(schedImgs));
+  const img = document.getElementById('sched-img-'+w), zone = document.getElementById('zone-'+w);
+  img.src=''; img.style.display='none'; zone.classList.remove('has-img');
+  zone.onclick = () => triggerSchedUpload(w);
+  showToast('🗑 تم حذف الصورة');
+}
+
+function viewSchedFull(w) {
+  if (!schedImgs[w]) { showToast('لا توجد صورة بعد'); return; }
+  document.getElementById('lightbox-img').src = schedImgs[w];
+  document.getElementById('lightbox').classList.add('open');
+}
+
+function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+
+function switchSchedTab(w) {
+  activeSchedTab = w;
+  document.getElementById('sched-panel-A').style.display = w==='A'?'block':'none';
+  document.getElementById('sched-panel-B').style.display = w==='B'?'block':'none';
+  document.getElementById('tab-a').className = 'week-tab'+(w==='A'?' active-a':'');
+  document.getElementById('tab-b').className = 'week-tab'+(w==='B'?' active-b':'');
+  refreshSchedTags();
+}
+
+function refreshSchedTags() {
+  const cw = getWeekType(new Date());
+  ['A','B'].forEach(w => {
+    const el = document.getElementById('current-tag-'+w); if (!el) return;
+    el.innerHTML = w===cw
+      ? `<div class="current-week-tag ${w.toLowerCase()}"><div class="dot"></div> هذا هو أسبوعك الحالي ✓</div>`
+      : '';
+    const zone = document.getElementById('zone-'+w);
+    if (!schedImgs[w]) zone.onclick = () => triggerSchedUpload(w);
+  });
+}
+
+// ─── Notes ─────────────────────────────────────────────────
+const TAG_LABEL = {A:'أسبوع أ', B:'أسبوع ب', both:'الأسبوعان', general:'ملاحظة عامة'};
+const TAG_PILL  = {A:'pill-A', B:'pill-B', both:'pill-both', general:'pill-general'};
+
+function openComposer(id=null) {
+  editingNoteId = id;
+  const comp = document.getElementById('note-composer'); comp.classList.add('open');
+  if (id !== null) {
+    const n = notes.find(x => x.id===id);
+    document.getElementById('note-tag-sel').value    = n.tag;
+    document.getElementById('note-text-input').value = n.text;
+  } else {
+    document.getElementById('note-tag-sel').value    = 'A';
+    document.getElementById('note-text-input').value = '';
+  }
+  document.getElementById('note-text-input').focus();
+}
+
+function closeComposer() { document.getElementById('note-composer').classList.remove('open'); editingNoteId=null; }
+
+function saveNote() {
+  const text = document.getElementById('note-text-input').value.trim();
+  const tag  = document.getElementById('note-tag-sel').value;
+  if (!text) { showToast('⚠ اكتب ملاحظتك أولاً'); return; }
+  if (editingNoteId !== null) {
+    const n = notes.find(x => x.id===editingNoteId);
+    n.text=text; n.tag=tag; n.edited=new Date().toISOString();
+  } else {
+    notes.unshift({id:Date.now(), text, tag, date:new Date().toISOString()});
+  }
+  localStorage.setItem('ab-notes', JSON.stringify(notes));
+  closeComposer(); renderNotes();
+  showToast('✓ تم حفظ الملاحظة');
+}
+
+function deleteNote(id) {
+  notes = notes.filter(n => n.id!==id);
+  localStorage.setItem('ab-notes', JSON.stringify(notes));
+  renderNotes(); showToast('🗑 تم حذف الملاحظة');
+}
+
+function setNoteFilter(btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on'); noteFilter=btn.dataset.f; renderNotes();
+}
+
+function renderNotes() {
+  const list     = document.getElementById('notes-list');
+  const filtered = noteFilter==='all' ? notes : notes.filter(n => n.tag===noteFilter);
+  if (!filtered.length) {
+    list.innerHTML=`<div class="empty-notes"><div class="empty-icon">📭</div><p>${noteFilter==='all'?'لا توجد ملاحظات — اضغط "+ إضافة" للبدء':'لا توجد ملاحظات في هذا التصنيف'}</p></div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(n => {
+    const d=new Date(n.date);
+    const ds=`${d.getDate()} ${AR_MONTHS[d.getMonth()]} · ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    return `<div class="note-card tag-${n.tag}">
+      <div class="note-card-header">
+        <span class="note-tag-pill ${TAG_PILL[n.tag]}">${TAG_LABEL[n.tag]}</span>
+        <span class="note-date">${ds}${n.edited?' (معدّل':''}</span>
+      </div>
+      <div class="note-text">${escHtml(n.text)}</div>
+      <div class="note-footer">
+        <button class="note-action-btn" onclick="openComposer(${n.id})">✏ تعديل</button>
+        <button class="note-action-btn del" onclick="deleteNote(${n.id})">🗑 حذف</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function showToast(msg) {
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+document.getElementById('lightbox').addEventListener('click', function(e) { if(e.target===this) closeLightbox(); });
+</script>
+</body>
+</html>
